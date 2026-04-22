@@ -1,0 +1,34 @@
+# config file for RNA-seq pipeline: FASTQ -> STAR -> featureCounts -> DESeq2 -> clusterProfiler
+# See README.md for pipeline documentation and parameter assumptions
+
+# sample sheet (tab-delimited: sample, fq1, fq2, condition)
+samples: "samples.tsv"
+
+# reference files (GENCODE recommended for Ensembl ID comptability)
+genome:
+  fasta: "/path/to/genome/GRCh38.primary_assembly.fa"
+  gtf: "/path/to/annotation/gencode.v44.annotation.gtf"
+  star_index: "/path/to/star_index"
+
+# STAR alignment
+star:
+  threads: 8
+  overhand: 100 # read length - 1
+
+# quantifying featureCounts
+# strand: 0=unstraded, 1=forward, 2=reverse - can be verified with infer_experiment.py
+featurecounts:
+  threads: 4
+  strand: 2
+
+# DESeq2 differential expression
+deseq2:
+  design: "-condition"
+  contrast: ["condition", "treated", "control"]
+  alpha: 0.05
+  lfc_threshold: 1
+  min_count: 10
+
+# output directories
+results: "results"
+logs: "logs"
