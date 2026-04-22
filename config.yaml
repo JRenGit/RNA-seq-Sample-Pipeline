@@ -13,7 +13,7 @@ genome:
 # STAR alignment
 star:
   threads: 8
-  overhand: 100 # read length - 1
+  overhand: 100 # should be changed to x read length - 1
 
 # quantifying featureCounts
 # strand: 0=unstraded, 1=forward, 2=reverse - can be verified with infer_experiment.py
@@ -23,7 +23,7 @@ featurecounts:
 
 # DESeq2 differential expression
 deseq2:
-  design: "-condition"
+  design: "~condition"
   contrast: ["condition", "treated", "control"]
   alpha: 0.05
   lfc_threshold: 1
