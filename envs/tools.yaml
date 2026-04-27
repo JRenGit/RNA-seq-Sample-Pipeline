@@ -1,0 +1,10 @@
+# Environment for strictly command line tools
+# R/Bioconductor packages are in a separate environment to minimize dependency conflicts
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - fastqc=0.12.1
+  - star=2.7.11b
+  - samtools=1.20
+  - subread=2.0.6
