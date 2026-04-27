@@ -52,3 +52,72 @@ rule all:
   input:
     expand("{results}/fastqc/{sample}_{read}_fastqc.html",
       results=config["results"], samples=SAMPLES, read=["R1", "R2"],
+
+# Rule: FastQC with per-sample read quality assessment
+# check quality scores before computationally expensive STAR alignment
+rule fastqc:
+  input:
+    fq=lambda wc: get_fq(wc, wc.read.lower())
+  output:
+    html="{results}/fastqc/{sample}_{read}_fastqc.html",
+    zip="{results}/fastqc/{sample}_{read}_fastqc.zip"
+  params:
+    outdir="{results}/fastqc"
+  log:
+    "{logs}/fastqc/{sample}_{read}.log"
+  conda:
+    "envs/tools.yaml"
+  threads: 2
+  shell:
+    """
+    fastqc {input.fq} \
+      --outdir {params.dir} \
+      --threads {threads} \
+      > {log} 2>&1
+
+    if [ ! -s {output.html} ] || [ ! -s {output.zip} ]; then
+      echo "Error: FastQC did not produce expected outputs for {wildcards.sample} {wildcards.read}" >> {log}
+      exit 1
+    fi
+    """
+# Rule: STAR Alignment
+rule star_align:
+  input:
+    fq1=lambda wc: get_fq(wc, "fq1"),
+    fq2=lambda wc: get_fq(wc, "fq2"),
+    index=config["genome"]["star_index"],
+    qc_r1="{results}/fastqc/{sample}_R1_fastqc.html",
+    qc_r2="{results}/fastqc/{sample}_R2_fastqc.html"
+  output:
+    bam="{results}/star/{sample}/{sample}.Aligned.sortedbyCoord.out.bam",
+    log_final="{results}/star/{sample}/{sample}.Log.final.out",
+    sj="{results}/star/{sample}/{sample}.SJ.out.tab"
+  params:
+    out_prefix="{results}/star/{sample}/{sample}.",
+    overhang=config["star"]["overhang"]
+  log:
+    "{logs}/star/{sample}.log"
+  conda:
+    "envs/tools.yaml"
+  threads: config["star"]["threads"]
+  shell:
+    """
+    STAR \
+      --runMode alignReads \
+      --genomeDir {input.index} \
+      --readFilesIn {input.fq1} {input.fq2} \
+      --readFilesCommand zcat \
+      --outSAMtype BAM SortedByCoordinate \
+      --twopassMode Basic \
+      --sjdbOverhang {params.overhang} \
+      --outFileNamePrefix {params.out_prefix} \
+      --runThreadN {threads} \
+      > {log} 2>&1
+
+    if [ ! -s {output.bam} ]; then
+      echo "Error: STAR produced empty BAM for {wildcards.sample}" >> {log}
+      exit 1
+    fi
+
+    samtools index {output.bam} >> {log} 2>&1
+    """
