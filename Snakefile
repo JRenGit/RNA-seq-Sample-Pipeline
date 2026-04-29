@@ -121,3 +121,36 @@ rule star_align:
 
     samtools index {output.bam} >> {log} 2>&1
     """
+# Rule: Feature Counts with final output as a count matrix for DESeq2 use
+rule featurecounts:
+  input:
+    bam=expand("{results}/star/{sample}.Aligned.sortedByCoord.out.bam",
+               results=config["results"], sample=SAMPLES),
+    gtf=config["genome"]["gtf"]
+  output:
+    counts="{results}/featurecounts/counts.txt",
+    summary="{results}/featurecounts/counts.txt.summary"
+  params:
+    strand=config["featurecounts"]["strand"]
+  logs:
+    "{logs}/featurecounts/featurecounts.log"
+  conda:
+    "evns/tools.yaml"
+  threads: config["featurecounts"]["threads"]
+  shell:
+    """
+    featureCounts \
+      -a {input.gtf} \
+      -o {output.counts} \
+      -p --countReadPairs
+      -s {params.strand} \
+      -T {threads} \
+      -t exon \
+      -g gene_id \
+      {input.bams} \
+      > {log} 2>&1
+    if [ ! -s {output.counts} ]; then
+      echo "Error: featureCounts produced empty count matrix" >> {log}
+      exit 1
+    fi
+    """"
