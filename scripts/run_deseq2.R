@@ -26,4 +26,24 @@ if (!all(colnames(count_data) == sample_info$sample)) {
   stop("Sample names in count matrix and sample sheet do not match.")
 }
 
-                          
+# Set reference level for contrast
+contrast <- snakemake@params[["contrast"]]
+sample_info[[contrast[1]]] <- factor(
+  sample_info[[contrast[1]]],
+  levels = c(contrast[3], contrast[2])
+)
+
+# Build DESeq DataSet
+design_formula <- as.formula(snakemake@params[["design"]]
+
+dds <- DESeqDataSetFromMatrix(
+  countData = count_data,
+  colData = sample_info,
+  design = design_formula
+)
+
+# Prefilter low-count genes
+keep <- rowSums(counts(dds)) >= snakemake@params[["min_count"]]
+dds <- dds[keep, ]
+
+message(paste(resultsNames(dds), collapse = ", "))                             
