@@ -46,4 +46,4 @@ dds <- DESeqDataSetFromMatrix(
 keep <- rowSums(counts(dds)) >= snakemake@params[["min_count"]]
 dds <- dds[keep, ]
 
-message(paste(resultsNames(dds), collapse = ", "))                             
+message(paste("Genes after filtering:", sum(keep)))                        
